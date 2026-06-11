@@ -1,0 +1,8 @@
+a1/dataset/*
+a3/coda_combined/*
+a3/coda_small/*
+a3/data/*
+
+/wandb/
+__pycache__/
+*.pt
