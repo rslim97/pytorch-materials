@@ -28,7 +28,7 @@ random.seed(34)
 np.random.seed(34)
 
 
-def train_and_val(model, config):
+def train_val(model, config):
     valid_loss_min = np.Inf
     for e in range(config["epochs"]):
         epoch_loss = 0
@@ -263,7 +263,8 @@ if __name__ == "__main__":
 
     optimizer = optim.Adam(model.parameters(), lr=run_config["lr"], weight_decay=0.0005)
 
-    train_and_val(model, run_config)
+    # Train and validation
+    train_val(model, run_config)
 
     model_arch = str(model)
     wandb.save(os.path.join(results_dir, "model_arch.txt"))
