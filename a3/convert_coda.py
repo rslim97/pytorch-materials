@@ -59,6 +59,9 @@ def visualize_coco(annotation_file, data_root):
             tl = (int(x_tl), int(y_tl))
             br = (int(x_tl + w), int(y_tl + h))
             cv2.rectangle(img, tl, br, (0, 255, 0), 1)
+            cv2.putText(
+                img, str(label), tl, cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1
+            )
         cv2.imshow(fname, img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -92,6 +95,15 @@ def visualize_coda(annotation_file, data_root):
             color = color_map[label]
             color[label % 3] = 0
             cv2.rectangle(img, tl, br, color_map[label], 2)
+            cv2.putText(
+                img,
+                CAR_CLASSES[label - 1],
+                tl,
+                cv2.FONT_HERSHEY_COMPLEX,
+                0.5,
+                color_map[label],
+                2,
+            )
         if cnt > 85:
             cv2.imshow(fname, img)
             cv2.waitKey(0)
@@ -266,7 +278,15 @@ def combine_dataset(data_dir, output_dir):
 
 # import shutil
 
-CLASSES = ["car", "pedestrian", "cyclist", "truck", "tram"]
+# CAR_CLASSES = ["car", "pedestrian", "cyclist", "truck", "tram"]
+# CAR_CLASSES = ['Pedestrian', 'Cyclist', 'Car', 'Truck', 'Tram']
+CAR_CLASSES = [
+    "pedestrian",
+    "cyclist",
+    "car",
+    "truck",
+    "tram",
+]  # in order of sequence in data["categories"]
 
 
 def filter_dataset(images, annotations, categories):
@@ -276,12 +296,15 @@ def filter_dataset(images, annotations, categories):
     data["annotations"] = []
     data["categories"] = []
     cat_id_map = {}
-    cat_id = 0
+    # cat_id_map_2 = {}
+    cat_id = 1  # 0 Background is reserved for background only
     # Filter categories of interest and remap to new category ids
     for cat in categories:
-        if cat["name"] in CLASSES:
+        print('cat["name"]', cat["name"])
+        if cat["name"] in CAR_CLASSES:
             # dict[old] = new
             cat_id_map[cat["id"]] = cat_id
+            # cat_id_map_2[cat_id] = cat["id"]
             data["categories"].append(
                 {
                     "name": cat["name"],
@@ -291,7 +314,7 @@ def filter_dataset(images, annotations, categories):
             )
             cat_id += 1
     # print(all_data['categories'])
-    # print(cat_id_map)
+    print("cat_id_map", cat_id_map)
 
     # cnt = 0
     for img in tqdm(images):
@@ -316,6 +339,35 @@ def filter_dataset(images, annotations, categories):
             for ann in img_annotations
             if ann["category_id"] in cat_id_map.keys()
         ]
+
+        # Plot image for debug
+        # fname = '000' + img_fname
+        # print('fname', fname)
+        # img = cv2.imread(os.path.join('a3', 'data', src_dir, 'images', fname))
+        # cv2.rectangle()
+        # keys = [c for c in category_ids]
+        # values = [
+        #     [
+        #         np.random.randint(125, 225),
+        #         np.random.randint(125, 225),
+        #         np.random.randint(125, 225),
+        #     ]
+        #     for _ in range(len(keys))
+        # ]
+        # color_map = dict(zip(keys, values))
+
+        # for bbox, label in zip(bboxes, category_ids):
+        #     x_tl, y_tl, w, h = bbox
+        #     tl = (int(x_tl), int(y_tl))
+        #     br = (int(x_tl + w), int(y_tl + h))
+        #     color = color_map[label]
+        #     color[label % 3] = 0
+        #     cv2.rectangle(img, tl, br, color_map[label], 2)
+        #     cv2.putText(img, CAR_CLASSES[label-1], tl, cv2.FONT_HERSHEY_COMPLEX, 0.5, color_map[label], 2)
+        # cv2.imshow('image', img)
+        # cv2.imwrite('save_debug.jpg', img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         # fname = os.path.join(img['source_dir'], 'images', img_name)
         # print(fname)
