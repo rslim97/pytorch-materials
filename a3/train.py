@@ -79,74 +79,74 @@ if __name__ == "__main__":
     test_loader = data.DataLoader(
         test_dataset, batch_size=1, shuffle=False, num_workers=1
     )
-    # print("len(train_loader)", len(train_loader))
-    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=0.001)
-    # val_loss_min = np.float64("inf")
-    # for epoch in range(num_epochs):
-    #     epoch_loss = 0
-    #     model.train()
-    #     train_loss = 0.0
-    #     val_loss = 0.0
-    #     for i, data in tqdm(enumerate(train_loader)):
-    #         image, target = data
-    #         batch_size = image.size(0)
-    #         optimizer.zero_grad()
-    #         image = image.permute(0, 3, 1, 2).to(device)
-    #         target = [label.tolist() for label in target]
-    #         # print('target', target)
-    #         target = gt_creator(
-    #             448, stride=4, num_classes=len(CAR_CLASSES), label_lists=target
-    #         )
-    #         target = torch.tensor(target).float().to(device)
-    #         pred_cls, pred_txty, pred_twth = model(image)
-    #         total_loss = get_loss(
-    #             pred_cls,
-    #             pred_txty,
-    #             pred_twth,
-    #             label=target,
-    #             num_classes=len(CAR_CLASSES),
-    #         )
-    #         total_loss.backward()
-    #         optimizer.step()
-    #         train_loss += total_loss.item() * batch_size
-    #         # print(total_loss.data)
-    #         del image, target, pred_cls, pred_txty, pred_twth
-    #         torch.cuda.empty_cache()
+    print("len(train_loader)", len(train_loader))
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=0.001)
+    val_loss_min = np.float64("inf")
+    for epoch in range(num_epochs):
+        epoch_loss = 0
+        model.train()
+        train_loss = 0.0
+        val_loss = 0.0
+        for i, data in tqdm(enumerate(train_loader)):
+            image, target = data
+            batch_size = image.size(0)
+            optimizer.zero_grad()
+            image = image.permute(0, 3, 1, 2).to(device)
+            target = [label.tolist() for label in target]
+            # print('target', target)
+            target = gt_creator(
+                448, stride=4, num_classes=len(CAR_CLASSES), label_lists=target
+            )
+            target = torch.tensor(target).float().to(device)
+            pred_cls, pred_txty, pred_twth = model(image)
+            total_loss = get_loss(
+                pred_cls,
+                pred_txty,
+                pred_twth,
+                label=target,
+                num_classes=len(CAR_CLASSES),
+            )
+            total_loss.backward()
+            optimizer.step()
+            train_loss += total_loss.item() * batch_size
+            # print(total_loss.data)
+            del image, target, pred_cls, pred_txty, pred_twth
+            torch.cuda.empty_cache()
 
-    #     train_loss /= len(train_loader.dataset)
+        train_loss /= len(train_loader.dataset)
 
-    #     with torch.no_grad():
-    #         model.eval()
-    #         for i, data in tqdm(enumerate(val_loader)):
-    #             image, target = data
-    #             batch_size = image.size(0)
-    #             image = image.permute(0, 3, 1, 2).to(device)
-    #             target = [label.tolist() for label in target]
+        with torch.no_grad():
+            model.eval()
+            for i, data in tqdm(enumerate(val_loader)):
+                image, target = data
+                batch_size = image.size(0)
+                image = image.permute(0, 3, 1, 2).to(device)
+                target = [label.tolist() for label in target]
 
-    #             target = gt_creator(
-    #                 448, stride=4, num_classes=len(CAR_CLASSES), label_lists=target
-    #             )
-    #             target = torch.tensor(target).float().to(device)
-    #             pred_cls, pred_txty, pred_twth = model(image)
-    #             total_loss = get_loss(
-    #                 pred_cls,
-    #                 pred_txty,
-    #                 pred_twth,
-    #                 label=target,
-    #                 num_classes=len(CAR_CLASSES),
-    #             )
-    #             val_loss += total_loss.item() * batch_size
-    #             del image, target, pred_cls, pred_txty, pred_twth
-    #             torch.cuda.empty_cache()
+                target = gt_creator(
+                    448, stride=4, num_classes=len(CAR_CLASSES), label_lists=target
+                )
+                target = torch.tensor(target).float().to(device)
+                pred_cls, pred_txty, pred_twth = model(image)
+                total_loss = get_loss(
+                    pred_cls,
+                    pred_txty,
+                    pred_twth,
+                    label=target,
+                    num_classes=len(CAR_CLASSES),
+                )
+                val_loss += total_loss.item() * batch_size
+                del image, target, pred_cls, pred_txty, pred_twth
+                torch.cuda.empty_cache()
 
-    #         if val_loss <= val_loss_min:
-    #             print(
-    #                 "Epoch {:03d} Validation loss decreased ({:.5f}->{:.5f}). Saving model".format(
-    #                     epoch + 1, val_loss_min, val_loss
-    #                 )
-    #             )
-    #             torch.save(model.state_dict(), ckpt_fname)
-    #             val_loss_min = val_loss
+            if val_loss <= val_loss_min:
+                print(
+                    "Epoch {:03d} Validation loss decreased ({:.5f}->{:.5f}). Saving model".format(
+                        epoch + 1, val_loss_min, val_loss
+                    )
+                )
+                torch.save(model.state_dict(), ckpt_fname)
+                val_loss_min = val_loss
 
     test_model = Model(num_classes=len(CAR_CLASSES), topk=10).to(device)
     model_state_dict = torch.load(ckpt_fname, weights_only=True)
