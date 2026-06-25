@@ -11,7 +11,9 @@ import torchvision.transforms as transforms
 
 import cv2
 
-CAR_CLASSES = ["car", "pedestrian", "cyclist", "truck", "tram"]
+# CAR_CLASSES = ["car", "pedestrian", "cyclist", "truck", "tram"]
+# CAR_CLASSES = ['Pedestrian', 'Cyclist', 'Car', 'Truck', 'Tram']
+CAR_CLASSES = ["pedestrian", "cyclist", "car", "truck", "tram"]
 
 
 class Dataset(data.Dataset):
@@ -25,7 +27,7 @@ class Dataset(data.Dataset):
         self.images_root = os.path.join(proj_dir, data_dir, split, "images")
         print("self.images_root", self.images_root)
         if split == "train":
-            self.train = True
+            self.train = False
         else:
             self.train = False
 
@@ -53,14 +55,12 @@ class Dataset(data.Dataset):
                 if (
                     x1 >= 0
                     and y1 >= 0
-                    and x1 <= self.image_size
-                    and y1 <= self.image_size
                     and x2 >= 0
                     and y2 >= 0
-                    and x2 <= self.image_size
-                    and y2 <= self.image_size
                     and x2 > x1
                     and y2 > y1
+                    and x2 < 1281
+                    and y2 < 720
                 ):
                     bboxes.append([x1, y1, x2, y2])
                 else:
@@ -82,6 +82,7 @@ class Dataset(data.Dataset):
         img = cv2.imread(os.path.join(self.images_root, f_name))
         boxes = self.boxes[idx].clone()  # clone for torch tensors
         labels = self.labels[idx].clone()  # clone for torch tensors
+        # print('labels.shape', labels.shape)
         assert img is not None
 
         if self.train:
@@ -100,9 +101,13 @@ class Dataset(data.Dataset):
         img = img[:, :, (2, 1, 0)]
         img = subMeanDividedStd(img, self.mean, self.std)
         img = cv2.resize(img, (self.image_size, self.image_size))
+        # print('boxes.shape', boxes.shape)
+        # print('labels.unsqueeze(1)', labels.unsqueeze(1).shape)
         target = torch.hstack((boxes, labels.unsqueeze(1)))
         # print('target', target)
-        return img, target
+        # return torch.from_numpy(img).unsqueeze(0), target.unsqueeze(0)  # (1, 3, H, W), (1, num_boxes, 5)
+        return torch.from_numpy(img), target
+        # return torch.from_numpy(img).permute(2, 0, 1), target  # (1, 3, H, W), (1, num_boxes, 5)
 
     def __len__(self):
         return self.num_samples
@@ -257,7 +262,7 @@ def main():
     train_dataset = Dataset(args, split="train", transform=[transforms.ToTensor()])
 
     train_loader = data.DataLoader(
-        train_dataset, batch_size=1, shuffle=False, num_workers=1
+        train_dataset, batch_size=1, shuffle=True, num_workers=1
     )
     train_iter = iter(train_loader)
     for i in range(5):
