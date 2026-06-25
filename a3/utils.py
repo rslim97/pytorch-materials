@@ -10,28 +10,33 @@ import cv2
 from loss import FocalLoss
 
 
-# Legacy code following from CornerNet
-# Resulted from completing the square of IoU calculation,
-# to get the positive roots of the equations.
+""" 
+Legacy code following from CornerNet
+Resulted from completing the square of IoU calculation,
+to get the positive roots of the equations.
+https://zhuanlan.zhihu.com/p/482584449
+"""
+
+
 def gaussian_radius(det_size, min_overlap=0.7):
-    box_h, box_h = det_size
-    a3 = 1
-    b3 = box_h + box_h
-    c3 = box_h * box_h * (1 - min_overlap) / (1 + min_overlap)
-    sq3 = np.sqrt(b3**2 - 4 * a3 * c3)
-    r3 = (b3 + sq3) / 2 * a3
+    box_h, box_w = det_size
+    a1 = 1
+    b1 = box_h + box_w
+    c1 = box_w * box_h * (1 - min_overlap) / (1 + min_overlap)
+    sq1 = np.sqrt(b1**2 - 4 * a1 * c1)
+    r1 = (b1 + sq1) / (2 * a1)
 
     a2 = 4
-    b2 = 2 * (box_h + box_h)
-    c2 = (1 - min_overlap) * box_h * box_h
+    b2 = 2 * (box_h + box_w)
+    c2 = (1 - min_overlap) * box_w * box_h
     sq2 = np.sqrt(b2**2 - 4 * a2 * c2)
-    r2 = (b2 + sq2) / 2 * a2
+    r2 = (b2 + sq2) / (2 * a2)
 
-    a1 = 4 * min_overlap
-    b1 = -2 * min_overlap * (box_h + box_h)
-    c1 = (min_overlap - 1) * box_h * box_h
-    sq1 = np.sqrt(b1**2 - 4 * a1 * c1)
-    r1 = (b1 + sq1) / 2 * a1
+    a3 = 4 * min_overlap
+    b3 = -2 * min_overlap * (box_h + box_w)
+    c3 = (min_overlap - 1) * box_w * box_h
+    sq3 = np.sqrt(b3**2 - 4 * a3 * c3)
+    r3 = (b3 + sq3) / (2 * a3)
 
     return min(r1, r2, r3)
 
@@ -60,13 +65,13 @@ def generate_txtytwth(bbox, w, h, s):
     if box_w < 1e-28 or box_h < 1e-28:
         return False
 
-    px_s = c_x / s
-    py_s = c_y / s
-    px_grid = int(px_s)  # take floor or int
-    py_grid = int(py_s)
+    c_x_s = c_x / s
+    c_y_s = c_y / s
+    px_grid = int(c_x_s)  # take floor or int
+    py_grid = int(c_y_s)
 
-    tx = px_s - px_grid  # float
-    ty = py_s - py_grid
+    tx = c_x_s - px_grid  # float
+    ty = c_y_s - py_grid
     tw = np.log(box_w_s)  # float
     th = np.log(box_h_s)
 
@@ -137,3 +142,12 @@ def get_loss(pred_cls, pred_txty, pred_twth, label, num_classes):
 
     total_loss = cls_loss + txty_loss + twth_loss
     return total_loss
+
+
+def detection_collate(batch):
+    targets = []
+    imgs = []
+    for sample in batch:
+        imgs.append(sample[0])
+        targets.append(sample[1].clone().detach().requires_grad_(True))
+    return torch.stack(imgs, 0), targets

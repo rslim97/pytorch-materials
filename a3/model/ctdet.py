@@ -117,18 +117,19 @@ class Model(nn.Module):
         topk_score, topk_ind, topk_clses = self.get_topk(cls_pred)
         topk_bbox_pred = bbox_pred[topk_ind[0]]
         return (
-            topk_bbox_pred.cpu().numpy(),
-            topk_score[0].cpu().numpy(),
-            topk_clses[0].cpu().numpy(),
+            topk_bbox_pred.detach().cpu().numpy(),
+            topk_score[0].detach().cpu().numpy(),
+            topk_clses[0].detach().cpu().numpy(),
         )
+
 
     def decode(self, pred):
         output = torch.zeros_like(pred)
         grid_y, grid_x = torch.meshgrid(
             [
-                torch.arange(112, device=pred.device),
-                torch.arange(112, device=pred.device),
-            ]
+                torch.arange(0, 112, device=pred.device),
+                torch.arange(0, 112, device=pred.device),
+            ], indexing='ij'
         )  # 448 / 4 = 112
         grid_cell = torch.stack([grid_x, grid_y], dim=-1).float().view(1, 112 * 112, 2)
         pred[:, :, :2] = (
