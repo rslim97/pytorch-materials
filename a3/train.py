@@ -172,13 +172,11 @@ if __name__ == "__main__":
         target_cls = target.squeeze(0)[:, 4].detach().cpu().numpy()
         print("bbox_target.shape", target_bbox.shape)
         target_bbox = target_bbox * np.array([[w0, h0, w0, h0]])  # xyxy
-        # print('bbox_pred.shape', bbox_pred.shape)
-        # image = (image.permute(0, 2, 3, 1)[0][:,:,(2,1,0)].detach().cpu().numpy()*255).astype(np.uint8)
         image = image[0].detach().permute(1, 2, 0).cpu().numpy()
-        image = ((image * std) + mean).astype(np.uint8)
-        # image = image[:, :, (2, 1, 0)]
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        # print(image)
+        # \hat{x} * mean + std = x, where \hat{x} \in [0, 1] and x \in [0, 255]
+        image = ((image * std) + mean).astype(np.uint8)  
+        image = np.ascontiguousarray(image[:, :, (2, 1, 0)])  # Convert RGB to BGR
+        # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         for j, box in enumerate(bbox_pred):
             if score[j] > 0.3:
