@@ -25,7 +25,7 @@ import cv2
 
 if __name__ == "__main__":
     device = torch.device("cuda") if "gpu" else torch.device("cpu")
-    num_epochs = 30
+    num_epochs = 150
 
     model = Model(num_classes=len(CAR_CLASSES), topk=10).to(device)
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     train_dataset = Dataset(args, split="train", transform=[transforms.ToTensor()])
     val_dataset = Dataset(args, split="val", transform=[transforms.ToTensor()])
-    test_dataset = Dataset(args, split="train", transform=[transforms.ToTensor()])
+    test_dataset = Dataset(args, split="test", transform=[transforms.ToTensor()])
     proj_dir = args.proj_dir
     ckpt_dir = os.path.join(proj_dir, args.ckpt_dir)
     results_dir = os.path.join(proj_dir, "results")
@@ -181,48 +181,49 @@ if __name__ == "__main__":
         # print(image)
 
         for j, box in enumerate(bbox_pred):
-            # if score[j] > 0.3:
-            # print('type(image)', type(image))
-            cls_indx = cls_ind[j]
-            # print('type(cls_indx)', type(cls_indx))
-            # print(type(box))
-            # print(box)
-            xmin, ymin, xmax, ymax = box
-            # print('image.shape', image.shape)
-            # print('type(image)', type(image))
-            # image = image.detach()
-            cv2.rectangle(
-                image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 0, 255), 2
-            )
-            cv2.putText(
-                image,
-                str(CAR_CLASSES[cls_indx - 1]),
-                (int(xmin), int(ymin)),
-                cv2.FONT_HERSHEY_COMPLEX,
-                0.5,
-                (0, 0, 0),
-                2,
-            )
+            if score[j] > 0.3:
+                # print('type(image)', type(image))
+                cls_indx = cls_ind[j]
+                # print('type(cls_indx)', type(cls_indx))
+                # print(type(box))
+                # print(box)
+                xmin, ymin, xmax, ymax = box
+                # print('image.shape', image.shape)
+                # print('type(image)', type(image))
+                # image = image.detach()
+                cv2.rectangle(
+                    image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2
+                )
+                cv2.putText(
+                    image,
+                    str(CAR_CLASSES[cls_indx - 1]),
+                    (int(xmin), int(ymin)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 255, 0),
+                    1,
+                )
             print("score", score)
             # print(j, box)
         for j, box_target in enumerate(target_bbox):
-            print(type(target_cls[j]))
-            gt_xmin, gt_ymin, gt_xmax, gt_ymax = box_target
+            # print(type(target_cls[j]))
+            # tgt = target
+            tgt_xmin, tgt_ymin, tgt_xmax, tgt_ymax = box_target
             cv2.rectangle(
                 image,
-                (int(gt_xmin), int(gt_ymin)),
-                (int(gt_xmax), int(gt_ymax)),
-                (255, 2, 0),
-                2,
+                (int(tgt_xmin), int(tgt_ymin)),
+                (int(tgt_xmax), int(tgt_ymax)),
+                (255, 0, 0),
+                1,
             )
             cv2.putText(
                 image,
                 str(CAR_CLASSES[int(target_cls[j] - 1)]),
-                (int(gt_xmin), int(gt_ymin)),
+                (int(tgt_xmin), int(tgt_ymin)),
                 cv2.FONT_HERSHEY_COMPLEX,
                 0.5,
-                (0, 0, 0),
-                2,
+                (255, 0, 0),
+                1,
             )
 
         cv2.imshow("image", image)

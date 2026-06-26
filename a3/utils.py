@@ -123,9 +123,9 @@ def gt_creator(input_size, stride, num_classes, label_lists=[]):
 
 
 def get_loss(pred_cls, pred_txty, pred_twth, label, num_classes):
-    cls_loss_func = FocalLoss()
-    txty_loss_func = nn.BCEWithLogitsLoss(reduction="none")
-    twth_loss_func = nn.SmoothL1Loss(reduction="none")
+    cls_loss_func = FocalLoss()  # scalar tensor
+    txty_loss_func = nn.BCEWithLogitsLoss(reduction="none")  # (N, hs * ws, 2)
+    twth_loss_func = nn.SmoothL1Loss(reduction="none")  # (N, hs * ws, 2)
 
     gt_cls = label[:, :, :num_classes].float()
     gt_txtytwth = label[:, :, num_classes:-1].float()
@@ -133,6 +133,9 @@ def get_loss(pred_cls, pred_txty, pred_twth, label, num_classes):
 
     N = pred_cls.shape[0]
     cls_loss = torch.sum(cls_loss_func(pred_cls, gt_cls)) / N
+    # print('txty_loss_func(pred_txty, gt_txtytwth[:, :, :2]).shape', txty_loss_func(pred_txty, gt_txtytwth[:, :, :2]).shape)  
+    # print('twth_loss_func(pred_twth, gt_txtytwth[:, :, 2:]).shape', twth_loss_func(pred_twth, gt_txtytwth[:, :, 2:]).shape)
+    # print('cls_loss_func(pred_cls, gt_cls)', cls_loss_func(pred_cls, gt_cls))
     txty_loss = torch.sum(
         torch.sum(txty_loss_func(pred_txty, gt_txtytwth[:, :, :2]), dim=2) * gt_box_conf
     )

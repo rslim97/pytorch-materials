@@ -27,7 +27,7 @@ class Dataset(data.Dataset):
         self.images_root = os.path.join(proj_dir, data_dir, split, "images")
         print("self.images_root", self.images_root)
         if split == "train":
-            self.train = False
+            self.train = True
         else:
             self.train = False
 
