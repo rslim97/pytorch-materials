@@ -28,7 +28,7 @@ if __name__ == "__main__":
     train_iter = iter(train_loader)
     mean = np.array([123.675, 116.280, 103.530])
     std = np.array([58.395, 57.120, 57.375])
-    for i in range(3):
+    for i in range(4):
         img, target = next(train_iter)
         batch_size, h0, w0, _ = img.shape
         # print('img.shape', img.shape)  # n, h, w, c
