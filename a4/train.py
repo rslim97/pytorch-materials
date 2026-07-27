@@ -11,6 +11,50 @@ import numpy as np
 import torch
 
 
+def plot(results_fname):
+    plt.figure(figsize=(10, 5))
+    # Load saved data
+    x = torch.load(results_fname, weights_only=True)
+    train_counter, train_losses = x["train_loss"]
+    valid_counter, valid_losses = x["valid_loss"]
+    valid_counter, valid_maps = x["valid_mAP"]
+    # val_accs = x["val_accs"]
+    plt.plot(
+        train_counter,
+        train_losses,
+        zorder=+100,
+        color="#1f77b4",
+        label="Train loss",
+    )
+    plt.plot(
+        valid_counter,
+        valid_losses,
+        zorder=+100,
+        color="#ff7f0e",
+        label="Val loss",
+    )
+    plt.scatter(
+        valid_counter,
+        valid_maps,
+        zorder=+200,
+        color="black",
+        label="Val mAP",
+    )
+    # plt.scatter(
+    #     [valid_counter[np.argmin(valid_losses)]],
+    #     [min(valid_losses)],
+    #     color="black",
+    #     zorder=+200,
+    #     label=(f"Best Accuracy: {max(val_accs)*100:.2f}%"),
+    # )
+    plt.title(results_fname)
+    plt.xlabel("Number of Examples Seen by the model")
+    plt.ylabel("Total Loss")
+    plt.legend()
+    plt.savefig(str(results_fname) + ".png")
+    plt.show()
+
+
 def seed_everything(seed: int = 444) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -20,7 +64,7 @@ def seed_everything(seed: int = 444) -> None:
 
 
 if __name__ == "__main__":
-    SEED = 444
+    SEED = 234
 
     seed_everything(SEED)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -272,6 +316,9 @@ if __name__ == "__main__":
     run_dir = Path("runs/detr")
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    results_dir = Path("results/detr")
+    results_dir.mkdir(parents=True, exist_ok=True)
+
     warmup_epochs = 0.5
     steps_per_epoch = len(train_loader)
     warmup_steps = max(0, int(round(warmup_epochs * steps_per_epoch)))
@@ -280,6 +327,12 @@ if __name__ == "__main__":
     epoch_pbar = tqdm(range(num_epochs), desc="Training")
 
     freeze_backbone_epochs = 5.0
+
+    counter = [i * len(train_loader.dataset) for i in range(num_epochs)]
+
+    train_losses = []
+    valid_losses = []
+    valid_maps = []
 
     for epoch in epoch_pbar:
         model.train()
@@ -337,9 +390,6 @@ if __name__ == "__main__":
                 )
 
         print("total_loss", total_loss)
-        # print(f"losses: loss_ce: {total_loss['loss_ce'].item():.3f}, \
-        #         loss_bbox: {total_loss['loss_bbox'].item():.3f}, \
-        #         loss_giou: {total_loss['loss_giou'].item():.3f}")
 
         if (epoch + 1) % eval_every == 0:
             eval_results = evaluate_detr(model, print_results=False, **eval_kwargs)
@@ -351,6 +401,18 @@ if __name__ == "__main__":
             tqdm.write(
                 f"Epoch {epoch + 1}: test_mAP={epoch_map:.4f}, test_loss={epoch_test_loss:.4f}"
             )
+
+        train_losses.append(total_loss.item())
+        valid_losses.append(epoch_test_loss)
+        valid_maps.append(epoch_map)
+        torch.save(
+            {
+                "train_loss": (counter, valid_losses),
+                "valid_loss": (counter, train_losses),
+                "valid_mAP": (counter, valid_maps),
+            },
+            results_dir / f"res_detr",
+        )
 
         if (epoch + 1) % save_every == 0:
             torch.save(model.state_dict(), run_dir / f"detector_epoch_{epoch + 1}.pth")
@@ -371,6 +433,9 @@ if __name__ == "__main__":
     print(f"Finished training in {training_seconds:.1f}s")
     print(f"Final test mAP: {final_map:.4f}")
     print(f"Final test loss: {final_test_loss:.4f}")
+
+    results_fname = results_dir / f"res_detr"
+    plot(results_fname)
 
     from src.predict import predict_image_detr
 
@@ -395,48 +460,51 @@ if __name__ == "__main__":
     checkpoint_path = run_dir / "detector_last.pth"
 
     inference_model = load_checkpoint_for_inference(checkpoint_path)
-    image_name = random.choice(test_dataset.fnames)
-    image_bgr = cv2.imread(str(file_root_test / image_name))
-    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    for i in range(5):
+        image_name = random.choice(test_dataset.fnames)
+        image_bgr = cv2.imread(str(file_root_test / image_name))
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
-    # Play around with the confidence threshold to see how they affect the predictions.
-    detections = predict_image_detr(
-        model=inference_model,
-        image_name=image_name,
-        root_img_directory=str(file_root_test),
-        conf_threshold=0.05,
-    )
-
-    canvas = image_rgb.copy()
-    for det in detections:
-        class_idx = VOC_CLASSES.index(det.class_name)
-        color = tuple(int(c) for c in COLORS[class_idx])
-        x1, y1, x2, y2 = det.box.astype(int).tolist()
-        cv2.rectangle(canvas, (x1, y1), (x2, y2), color, 2)
-        label = f"{det.class_name} {det.score:.2f}"
-        (w, h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-        text_x = x1
-        text_y = max(h + 5, y1)
-        cv2.rectangle(
-            canvas,
-            (text_x, text_y - h - baseline),
-            (text_x + w, text_y),
-            color,
-            thickness=-1,
-        )
-        cv2.putText(
-            canvas,
-            label,
-            (x1, max(15, y1 - 4)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (255, 255, 255),
-            1,
-            cv2.LINE_AA,
+        # Play around with the confidence threshold to see how they affect the predictions.
+        detections = predict_image_detr(
+            model=inference_model,
+            image_name=image_name,
+            root_img_directory=str(file_root_test),
+            conf_threshold=0.05,
         )
 
-    plt.figure(figsize=(12, 12))
-    plt.imshow(canvas)
-    plt.title(f"DETR Predictions for {image_name}")
-    plt.axis("off")
-    plt.show()
+        canvas = image_rgb.copy()
+        for det in detections:
+            class_idx = VOC_CLASSES.index(det.class_name)
+            color = tuple(int(c) for c in COLORS[class_idx])
+            x1, y1, x2, y2 = det.box.astype(int).tolist()
+            cv2.rectangle(canvas, (x1, y1), (x2, y2), color, 2)
+            label = f"{det.class_name} {det.score:.2f}"
+            (w, h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+            text_x = x1
+            text_y = max(h + 5, y1)
+            cv2.rectangle(
+                canvas,
+                (text_x, text_y - h - baseline),
+                (text_x + w, text_y),
+                color,
+                thickness=-1,
+            )
+            cv2.putText(
+                canvas,
+                label,
+                (x1, max(15, y1 - 4)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
+
+        plt.imsave(results_dir / f"{image_name}.png", canvas)
+
+        # plt.figure(figsize=(12, 12))
+        # plt.imshow(canvas)
+        # plt.title(f"DETR Predictions for {image_name}")
+        # plt.axis("off")
+        # plt.show()
