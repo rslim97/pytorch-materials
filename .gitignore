@@ -6,3 +6,6 @@ a3/data/*
 /wandb/
 __pycache__/
 *.pt
+
+/a4/data/
+/a4/runs/detr
