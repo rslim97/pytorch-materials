@@ -503,7 +503,7 @@ if __name__ == "__main__":
                 cv2.LINE_AA,
             )
 
-        plt.imsave(results_dir / f"{image_name}.png", canvas)
+        plt.imsave(results_dir / f"{image_name}", canvas)
 
         # plt.figure(figsize=(12, 12))
         # plt.imshow(canvas)
