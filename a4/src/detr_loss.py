@@ -401,6 +401,6 @@ class DETRSetCriterion(nn.Module):
         losses = {}
         losses.update(self.loss_labels(outputs, targets, indices, num_boxes))
         losses.update(self.loss_boxes(outputs, targets, indices, num_boxes))
-        # print(f"losses: loss_ce: {losses['loss_ce'].item():.3f}")
+
         # print(f"losses: loss_ce: {losses['loss_ce'].item():.3f}, loss_bbox: {losses['loss_bbox'].item()}, loss_giou: {losses['loss_giou'].item()}")
         return losses
