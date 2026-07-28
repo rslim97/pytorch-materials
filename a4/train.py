@@ -40,6 +40,8 @@ def plot(results_fname):
         color="black",
         label="Val mAP",
     )
+    for i, txt in enumerate(valid_maps):
+        plt.annotate(round(txt, 2), (valid_counter[i], txt+0.1), rotation=90)
     # plt.scatter(
     #     [valid_counter[np.argmin(valid_losses)]],
     #     [min(valid_losses)],
@@ -460,7 +462,7 @@ if __name__ == "__main__":
     checkpoint_path = run_dir / "detector_last.pth"
 
     inference_model = load_checkpoint_for_inference(checkpoint_path)
-    for i in range(5):
+    for i in range(10):
         image_name = random.choice(test_dataset.fnames)
         image_bgr = cv2.imread(str(file_root_test / image_name))
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
